@@ -1,0 +1,47 @@
+name: Review and Analyze Flutter Pull Request
+
+on:
+  pull_request:
+    branches: [ review, develop, master ]
+
+jobs:
+  pull_request_review:
+    name: PR Review with Static Analysis and Test Coverage
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clone Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version-file: pubspec.yaml
+          cache: ${{ github.base_ref == 'review' }}  # Enable caching only for 'review' branch
+          cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:"
+          cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:"
+          pub-cache-key: "flutter-pub:os:-:channel:-:version:-:arch:-:hash:"
+          pub-cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:"
+
+      - name: Verify Flutter Setup
+        run: flutter --version
+
+      - name: Install Flutter Dependencies
+        run: |
+          flutter clean
+          flutter pub get
+
+      - name: Check Code Formatting
+        run: |
+          dart format . --line-length=120 --set-exit-if-changed || echo "Code formatting is not up to standard"
+
+      - name: Analyze Code with Static Analysis
+        run: |
+          dart analyze
+          flutter analyze
+
+      - name: Run Unit Tests with Coverage
+        run: flutter test --coverage
+
+      # Research and Deep dive on how to implement the step for unit tests code coverage
